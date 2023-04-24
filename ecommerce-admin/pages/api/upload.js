@@ -21,8 +21,8 @@ export default async function handle(req, res) {
       secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
     },
   })
-  const links = []
 
+  const links = []
   for (const file of files.file) {
     const ext = file.originalFilename.split('.').pop()
     const newFilename = Date.now() + '.' + ext
@@ -35,7 +35,7 @@ export default async function handle(req, res) {
         ContentType: mime.lookup(file.path),
       })
     )
-    const link = `https://${bucketName}.s3.amazon.com/${newFilename}`
+    const link = `https://${bucketName}.s3.amazonaws.com/${newFilename}`
     links.push(link)
   }
   return res.json({ links })
