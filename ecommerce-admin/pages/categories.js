@@ -1,8 +1,10 @@
 import Layout from '@/components/Layout'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { withSwal } from 'react-sweetalert2'
 
-export default function Categories() {
+function Categories({ swal }) {
+  const [editedCategory, setEditedCategory] = useState(null)
   const [name, setName] = useState('')
   const [categories, setCategories] = useState([])
   const [parentCategory, setParentCategory] = useState('')
@@ -19,17 +21,51 @@ export default function Categories() {
 
   async function saveCategory(ev) {
     ev.preventDefault()
-    await axios.post('/api/categories', { name, parentCategory })
+    const data = { name, parentCategory }
+    if (editedCategory) {
+      data._id = editedCategory._id
+      await axios.put('/api/categories', data)
+      setEditedCategory(null)
+    } else {
+      await axios.post('/api/categories', data)
+    }
     setName('')
-    axios.get('/api/categories').then(result => {
-      setCategories(result.data)
-    })
+    fetchCategories()
+  }
+
+  function editCategory(category) {
+    setEditedCategory(category)
+    setName(category.name)
+    setParentCategory(category.parent?._id)
+  }
+
+  function deleteCategory(category) {
+    swal
+      .fire({
+        title: 'Delete',
+        text: `Do you want to delete ${category.name}?`,
+        showCancelButton: true,
+        cancelButtonText: 'Cancel',
+        confirmButtonText: 'Yes',
+        confirmButtonColor: '#d55',
+      })
+      .then(async result => {
+        if (result.isConfirmed) {
+          const { _id } = category
+          await axios.delete('/api/categories?_id=' + _id)
+          fetchCategories()
+        }
+      })
   }
 
   return (
     <Layout>
       <h1>Categories</h1>
-      <label>New Category Name</label>
+      <label>
+        {editedCategory
+          ? `Edit Category '${editedCategory.name}'`
+          : 'Create new Category'}
+      </label>
       <form onSubmit={saveCategory} className="flex gap-1">
         <input
           className="mb-0"
@@ -57,6 +93,8 @@ export default function Categories() {
         <thead>
           <tr>
             <td>Category Name</td>
+            <td>Parent Category </td>
+            <td></td>
           </tr>
         </thead>
         <tbody>
@@ -64,6 +102,21 @@ export default function Categories() {
             categories.map(category => (
               <tr>
                 <td>{category.name}</td>
+                <td>{category?.parent?.name}</td>
+                <td>
+                  <button
+                    onClick={() => editCategory(category)}
+                    className="btn-primary mr-1"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteCategory(category)}
+                    className="btn-primary"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
         </tbody>
@@ -71,3 +124,5 @@ export default function Categories() {
     </Layout>
   )
 }
+
+export default withSwal(({ swal }, ref) => <Categories swal={swal} />)
